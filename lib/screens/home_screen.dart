@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:construction_calculator/theme/app_colors.dart'; // color theme
 import 'package:construction_calculator/screens/concrete_calculator_screen.dart';
+import 'package:construction_calculator/screens/framing_calculator_screen.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -8,16 +9,18 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> buttonTitles = [
-      'Concrete Calculator',
-      'Lumber Calculator',
-      'Paint Estimator',
-      'Roofing Estimator',
-      'Tile / Flooring',
-      'Wall Framing',
-      'Unit Converter',
-      'Simple Calculator',
-    ];
+    final Map<String, Widget> routeMap = {
+      'Concrete Calculator': const ConcreteCalculatorScreen(),
+      'Wall Framing': const FramingCalculatorScreen(),
+      // Add more pages here as needed
+      'Lumber Calculator': Placeholder(), // temp placeholders
+      'Paint Estimator': Placeholder(),
+      'Roofing Estimator': Placeholder(),
+      'Tile / Flooring': Placeholder(),
+      'Unit Converter': Placeholder(),
+      'Simple Calculator': Placeholder(),
+    };
+
 
     return Scaffold(
       appBar: AppBar(
@@ -48,45 +51,42 @@ class HomeScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
         child: Column(
-          children: buttonTitles
-              .map(
-                (title) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18.0),
-                        backgroundColor: AppColors.buttonBackground,
-                        foregroundColor: AppColors.buttonText,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+          children: routeMap.entries.map(
+            (entry) {
+              final title = entry.key;
+              final screen = entry.value;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18.0),
+                      backgroundColor: AppColors.buttonBackground,
+                      foregroundColor: AppColors.buttonText,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      onPressed: () {
-                        if (title == 'Concrete Calculator') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ConcreteCalculatorScreen(),
-                            ),
-                          );
-                        } else {
-                          // TODO: Add other page routes later
-                        }
-                      },
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          color: AppColors.buttonText,
-                        ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => screen),
+                      );
+                    },
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18.0,
+                        color: AppColors.buttonText,
                       ),
                     ),
                   ),
                 ),
-              )
-              .toList(),
+              );
+            },
+          ).toList(),
         ),
       ),
     );

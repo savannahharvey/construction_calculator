@@ -444,51 +444,51 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
   }
 
   Widget _buildLossCalculation() {
-  final totalNeeded = (_volumeCubicMeters ?? 0) + _getManualVolumeMeters();
-  final ordered = double.tryParse(_orderedAmountController.text);
-  if (ordered == null || ordered <= 0) return const SizedBox();
+    final totalNeeded = (_volumeCubicMeters ?? 0) + _getManualVolumeMeters();
+    final ordered = double.tryParse(_orderedAmountController.text);
+    if (ordered == null || ordered <= 0) return const SizedBox();
 
-  final orderedMeters = _convertToCubicMeters(ordered, _orderedUnit);
-  final difference = orderedMeters - totalNeeded;
-  final percent = ((difference / totalNeeded) * 100).toStringAsFixed(1);
-  final isOver = difference >= 0;
+    final orderedMeters = _convertToCubicMeters(ordered, _orderedUnit);
+    final difference = orderedMeters - totalNeeded;
+    final percent = ((difference / totalNeeded) * 100).toStringAsFixed(1);
+    final isOverLow = difference >= 0 && ((difference / totalNeeded) * 100) < 15;
+    final isOverHigh = difference >= 0 && ((difference / totalNeeded) * 100) >= 15;
 
-  final diffFeet = difference / 0.0283168;
-  final diffYards = diffFeet / 27;
+    final diffFeet = difference / 0.0283168;
+    final diffYards = diffFeet / 27;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        isOver ? 'Overage (Extra Ordered):' : 'Shortage (Under Ordered):',
-        style: TextStyle(
-          color: isOver ? Colors.green : Colors.redAccent,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          ordered > 0 ? 'Overage (Extra Ordered):' : 'Shortage (Under Ordered):',
+          style: TextStyle(
+            color: isOverLow ? Colors.green : isOverHigh ? Colors.yellow: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        '- Difference: ${_formatDouble(difference.abs())} m³',
-        style: const TextStyle(color: AppColors.textPrimary),
-      ),
-      Text(
-        '- Difference: ${_formatDouble(diffFeet.abs())} ft³',
-        style: const TextStyle(color: AppColors.textPrimary),
-      ),
-      Text(
-        '- Difference: ${_formatDouble(diffYards.abs())} yd³',
-        style: const TextStyle(color: AppColors.textPrimary),
-      ),
-      Text(
-        '- Percentage: ${isOver ? '+' : '-'}$percent%',
-        style: TextStyle(
-          color: isOver ? Colors.green : Colors.redAccent,
-          fontWeight: FontWeight.bold,
+        const SizedBox(height: 8),
+        Text(
+          '- Difference: ${_formatDouble(difference.abs())} m³',
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-      ),
-    ],
-  );
-}
-
+        Text(
+          '- Difference: ${_formatDouble(diffFeet.abs())} ft³',
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        Text(
+          '- Difference: ${_formatDouble(diffYards.abs())} yd³',
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        Text(
+          '- Percentage: ${isOverLow || isOverHigh ? '+' : '-'}$percent%',
+          style: TextStyle(
+            color: isOverLow ? Colors.green : isOverHigh ? Colors.yellow: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 }
