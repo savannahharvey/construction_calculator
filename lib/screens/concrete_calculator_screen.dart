@@ -13,40 +13,58 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
   final TextEditingController _widthController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
 
-  String _inputUnit = 'feet'; // or 'meters'
-  double? _cubicFeet;
-  double? _cubicMeters;
-  double? _cubicYards;
+  // Units options
+  final List<String> _units = [
+    'feet',
+    'inches',
+    'yards',
+    'meters',
+    'centimeters',
+    'millimeters',
+  ];
+
+  // Selected unit per input
+  String _lengthUnit = 'feet';
+  String _widthUnit = 'feet';
+  String _heightUnit = 'inches';
+
+  double? _volumeCubicMeters; // internal base unit: meters³
+
+  // Conversion factors to meters
+  final Map<String, double> _toMeters = {
+    'feet': 0.3048,
+    'inches': 0.0254,
+    'yards': 0.9144,
+    'meters': 1.0,
+    'centimeters': 0.01,
+    'millimeters': 0.001,
+  };
 
   void _calculateVolume() {
-    final double? length = double.tryParse(_lengthController.text);
-    final double? width = double.tryParse(_widthController.text);
-    final double? height = double.tryParse(_heightController.text);
+    double? length = double.tryParse(_lengthController.text);
+    double? width = double.tryParse(_widthController.text);
+    double? height = double.tryParse(_heightController.text);
 
     if (length == null || width == null || height == null) {
       setState(() {
-        _cubicFeet = null;
-        _cubicMeters = null;
-        _cubicYards = null;
+        _volumeCubicMeters = null;
       });
       return;
     }
 
-    double volumeInCubicFeet;
-    if (_inputUnit == 'feet') {
-      volumeInCubicFeet = length * width * height;
-    } else {
-      // Convert meters³ to feet³ (1 m³ = 35.3147 ft³)
-      double volumeInCubicMeters = length * width * height;
-      volumeInCubicFeet = volumeInCubicMeters * 35.3147;
-    }
+    // Convert each to meters
+    length *= _toMeters[_lengthUnit]!;
+    width *= _toMeters[_widthUnit]!;
+    height *= _toMeters[_heightUnit]!;
+
+    final volume = length * width * height; // cubic meters
 
     setState(() {
-      _cubicFeet = volumeInCubicFeet;
-      _cubicMeters = volumeInCubicFeet / 35.3147;
-      _cubicYards = volumeInCubicFeet / 27;
+      _volumeCubicMeters = volume;
     });
   }
+
+  String _formatDouble(double val) => val.toStringAsFixed(3);
 
   @override
   Widget build(BuildContext context) {
@@ -64,42 +82,25 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            ToggleButtons(
-              isSelected: [_inputUnit == 'feet', _inputUnit == 'meters'],
-              onPressed: (int index) {
-                setState(() {
-                  _inputUnit = index == 0 ? 'feet' : 'meters';
-                });
-              },
-              borderRadius: BorderRadius.circular(8),
-              selectedColor: AppColors.buttonText,
-              fillColor: AppColors.constructionOrange,
-              color: AppColors.textSecondary,
-              children: const [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Feet'),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Meters'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildInputField('Length (${_inputUnit})', _lengthController),
-            _buildInputField('Width (${_inputUnit})', _widthController),
-            _buildInputField('Height (${_inputUnit})', _heightController),
-            const SizedBox(height: 20),
+            _buildInputRow('Length', _lengthController, _lengthUnit, (val) {
+              setState(() => _lengthUnit = val);
+            }),
+            _buildInputRow('Width', _widthController, _widthUnit, (val) {
+              setState(() => _widthUnit = val);
+            }),
+            _buildInputRow('Height', _heightController, _heightUnit, (val) {
+              setState(() => _heightUnit = val);
+            }),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: AppColors.buttonBackground,
                   foregroundColor: AppColors.buttonText,
                   shape: RoundedRectangleBorder(
@@ -114,54 +115,98 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            if (_cubicFeet != null) _buildResults()
+            if (_volumeCubicMeters != null) _buildResults(_volumeCubicMeters!)
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller) {
+  Widget _buildInputRow(
+    String label,
+    TextEditingController controller,
+    String selectedUnit,
+    ValueChanged<String> onUnitChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.numberWithOptions(decimal: true),
-        style: const TextStyle(color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
-          filled: true,
-          fillColor: AppColors.surface,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: AppColors.divider),
-            borderRadius: BorderRadius.circular(10),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: DropdownButtonFormField<String>(
+              value: selectedUnit,
+              items: _units
+                  .map((unit) => DropdownMenuItem(
+                        value: unit,
+                        child: Text(unit, style: const TextStyle(color: AppColors.textPrimary)),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) onUnitChanged(val);
+              },
+              dropdownColor: AppColors.surface,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildResults() {
+  Widget _buildResults(double volumeMeters) {
+    final volumeFeet = volumeMeters / 0.0283168; // 1 cubic meter = ~35.3147 cubic feet
+    final volumeYards = volumeFeet / 27;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Volume Results:',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Text(
-          '- Cubic Feet: ${_cubicFeet!.toStringAsFixed(2)} ft³',
+          '- Cubic Meters: ${_formatDouble(volumeMeters)} m³',
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
         ),
         Text(
-          '- Cubic Meters: ${_cubicMeters!.toStringAsFixed(2)} m³',
+          '- Cubic Feet: ${_formatDouble(volumeFeet)} ft³',
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
         ),
         Text(
-          '- Cubic Yards: ${_cubicYards!.toStringAsFixed(2)} yd³',
+          '- Cubic Yards: ${_formatDouble(volumeYards)} yd³',
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
         ),
       ],
