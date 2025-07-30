@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:construction_calculator/theme/app_colors.dart'; // color theme
 import 'package:construction_calculator/screens/concrete_calculator_screen.dart';
 import 'package:construction_calculator/screens/framing_calculator_screen.dart';
+import 'package:construction_calculator/screens/lumber_calculator_screen.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -12,8 +13,8 @@ class HomeScreen extends StatelessWidget {
     final Map<String, Widget> routeMap = {
       'Concrete Calculator': const ConcreteCalculatorScreen(),
       'Wall Framing': const FramingCalculatorScreen(),
+      'Lumber Calculator': const LumberCalculatorScreen(),
       // Add more pages here as needed
-      'Lumber Calculator': Placeholder(), // temp placeholders
       'Paint Estimator': Placeholder(),
       'Roofing Estimator': Placeholder(),
       'Tile / Flooring': Placeholder(),
