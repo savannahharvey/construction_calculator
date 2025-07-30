@@ -9,64 +9,40 @@ class ConcreteCalculatorScreen extends StatefulWidget {
 }
 
 class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
-  final TextEditingController _lengthController = TextEditingController();
-  final TextEditingController _widthController = TextEditingController();
-  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _lengthFeetController = TextEditingController();
+  final TextEditingController _lengthInchesController = TextEditingController();
+  final TextEditingController _widthFeetController = TextEditingController();
+  final TextEditingController _widthInchesController = TextEditingController();
+  final TextEditingController _heightFeetController = TextEditingController();
+  final TextEditingController _heightInchesController = TextEditingController();
+
 
   // Ordered amount input
   final TextEditingController _orderedAmountController = TextEditingController();
   String _orderedUnit = 'cubic yards';
 
-  // Units options
-  final List<String> _units = [
-    'feet',
-    'inches',
-    'yards',
-    'meters',
-    'centimeters',
-    'millimeters',
-  ];
-
-  // Selected unit per input
-  String _lengthUnit = 'feet';
-  String _widthUnit = 'feet';
-  String _heightUnit = 'inches';
-
   double? _volumeCubicMeters; // internal base unit: meters³
 
-  // Conversion factors to meters
-  final Map<String, double> _toMeters = {
-    'feet': 0.3048,
-    'inches': 0.0254,
-    'yards': 0.9144,
-    'meters': 1.0,
-    'centimeters': 0.01,
-    'millimeters': 0.001,
-  };
-
   void _calculateVolume() {
-    double? length = double.tryParse(_lengthController.text);
-    double? width = double.tryParse(_widthController.text);
-    double? height = double.tryParse(_heightController.text);
+    double? lengthFeet = double.tryParse(_lengthFeetController.text) ?? 0;
+    double? lengthInches = double.tryParse(_lengthInchesController.text) ?? 0;
+    double? widthFeet = double.tryParse(_widthFeetController.text) ?? 0;
+    double? widthInches = double.tryParse(_widthInchesController.text) ?? 0;
+    double? heightFeet = double.tryParse(_heightFeetController.text) ?? 0;
+    double? heightInches = double.tryParse(_heightInchesController.text) ?? 0;
 
-    if (length == null || width == null || height == null) {
-      setState(() {
-        _volumeCubicMeters = null;
-      });
-      return;
-    }
+    // Convert total inches to feet, then to meters
+    final lengthMeters = ((lengthFeet + (lengthInches / 12)) * 0.3048);
+    final widthMeters = ((widthFeet + (widthInches / 12)) * 0.3048);
+    final heightMeters = ((heightFeet + (heightInches / 12)) * 0.3048);
 
-    // Convert each to meters
-    length *= _toMeters[_lengthUnit]!;
-    width *= _toMeters[_widthUnit]!;
-    height *= _toMeters[_heightUnit]!;
-
-    final volume = length * width * height; // cubic meters
+    final volume = lengthMeters * widthMeters * heightMeters;
 
     setState(() {
       _volumeCubicMeters = volume;
     });
   }
+
 
   final List<Map<String, dynamic>> _manualVolumes = [];
 
@@ -133,15 +109,9 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildInputRow('Length', _lengthController, _lengthUnit, (val) {
-              setState(() => _lengthUnit = val);
-            }),
-            _buildInputRow('Width', _widthController, _widthUnit, (val) {
-              setState(() => _widthUnit = val);
-            }),
-            _buildInputRow('Height', _heightController, _heightUnit, (val) {
-              setState(() => _heightUnit = val);
-            }),
+            _buildFeetInchesInputRow('Length', _lengthFeetController, _lengthInchesController),
+            _buildFeetInchesInputRow('Width', _widthFeetController, _widthInchesController),
+            _buildFeetInchesInputRow('Height', _heightFeetController, _heightInchesController),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -321,24 +291,22 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
     );
   }
 
-  Widget _buildInputRow(
+  Widget _buildFeetInchesInputRow(
     String label,
-    TextEditingController controller,
-    String selectedUnit,
-    ValueChanged<String> onUnitChanged,
+    TextEditingController feetController,
+    TextEditingController inchesController,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
-            flex: 3,
             child: TextField(
-              controller: controller,
+              controller: feetController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                labelText: label,
+                labelText: '$label (ft)',
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.surface,
@@ -352,31 +320,21 @@ class _ConcreteCalculatorScreenState extends State<ConcreteCalculatorScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            flex: 2,
-            child: DropdownButtonFormField<String>(
-              value: selectedUnit,
-              items: _units
-                  .map((unit) => DropdownMenuItem(
-                        value: unit,
-                        child: Text(unit, style: const TextStyle(color: AppColors.textPrimary)),
-                      ))
-                  .toList(),
-              onChanged: (val) {
-                if (val != null) onUnitChanged(val);
-              },
-              dropdownColor: AppColors.surface,
+            child: TextField(
+              controller: inchesController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
+                labelText: '(in)',
+                labelStyle: const TextStyle(color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.surface,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 enabledBorder: OutlineInputBorder(
                   borderSide: const BorderSide(color: AppColors.divider),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             ),
           ),
         ],
