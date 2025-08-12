@@ -6,6 +6,8 @@ import 'package:construction_calculator/screens/lumber_calculator_screen.dart';
 import 'package:construction_calculator/screens/paint_estimator_screen.dart';
 import 'package:construction_calculator/screens/roof_estimator_screen.dart';
 import 'package:construction_calculator/screens/tile_floor_calculator_screen.dart';
+import 'package:construction_calculator/screens/unit_converter_screen.dart';
+import 'package:construction_calculator/screens/simple_calc_screen.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -20,9 +22,8 @@ class HomeScreen extends StatelessWidget {
       'Paint Estimator': const PaintEstimatorScreen(),
       'Roofing Estimator': const RoofEstimatorScreen(),
       'Tile / Flooring': const TileFlooringEstimatorScreen(),
-      // Add more pages here as needed
-      'Unit Converter': Placeholder(),
-      'Simple Calculator': Placeholder(),
+      'Unit Converter': const UnitConverterScreen(),
+      'Simple Calculator': const SimpleCalculatorScreen(),
     };
 
 
