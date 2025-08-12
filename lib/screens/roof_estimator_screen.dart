@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:construction_calculator/theme/app_colors.dart'; // color theme
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:construction_calculator/theme/app_colors.dart';
 
 class RoofEstimatorScreen extends StatefulWidget {
   const RoofEstimatorScreen({super.key});
@@ -10,166 +10,192 @@ class RoofEstimatorScreen extends StatefulWidget {
 }
 
 class _RoofEstimatorScreenState extends State<RoofEstimatorScreen> {
-  final _lengthFtController = TextEditingController();
-  final _lengthInController = TextEditingController();
-  final _widthFtController = TextEditingController();
-  final _widthInController = TextEditingController();
-  final _wasteController = TextEditingController(text: "10");
-  final _coveragePerPackageController = TextEditingController(text: "33.3"); // typical bundle coverage
+  final TextEditingController _widthController = TextEditingController();
+  final TextEditingController _lengthController = TextEditingController();
+  final TextEditingController _pitchRiseController = TextEditingController();
+  final TextEditingController _pitchRunController = TextEditingController();
+  final TextEditingController _costPerPackageController = TextEditingController();
 
-  String _selectedPitch = "4/12";
-  String _selectedShingleType = "Asphalt";
+  double? _roofArea; // total surface area
+  int? _packagesNeeded;
+  double? _waste; // leftover material
+  double? _totalCost;
 
-  double? surfaceArea;
-  double? materialNeededBeforeWaste;
-  double? materialNeededAfterWaste;
-  int? totalPackages;
-  double? leftoverSqFt;
+  // Shingle types and coverage per package (in sq ft)
+  final Map<String, double> _shingleTypes = {
+    '3-Tab Asphalt': 33.3,
+    'Architectural Asphalt': 33.3,
+    'Wood Shingles': 25.0,
+    'Metal Panels': 50.0,
+  };
+  String _selectedShingle = '3-Tab Asphalt';
 
-  final List<String> _pitchOptions = ["3/12", "4/12", "5/12", "6/12", "8/12", "10/12", "12/12"];
-  final List<String> _shingleTypes = ["Asphalt", "Architectural", "Metal", "Wood Shake"];
+  void _calculateRoof() {
+    final width = double.tryParse(_widthController.text);
+    final length = double.tryParse(_lengthController.text);
+    final rise = double.tryParse(_pitchRiseController.text);
+    final run = double.tryParse(_pitchRunController.text);
+    final costPerPackage = double.tryParse(_costPerPackageController.text);
 
-  double pitchMultiplier(String pitch) {
-    // Convert pitch like "6/12" to multiplier
-    var split = pitch.split("/");
-    double rise = double.tryParse(split[0]) ?? 0;
-    double run = double.tryParse(split[1]) ?? 12;
-    double slope = sqrt(pow(rise, 2) + pow(run, 2)) / run;
-    return slope;
-  }
+    if (width == null || length == null || rise == null || run == null || costPerPackage == null) {
+      setState(() {
+        _roofArea = null;
+        _packagesNeeded = null;
+        _waste = null;
+        _totalCost = null;
+      });
+      return;
+    }
 
-  void calculateRoof() {
-    double lengthFt = double.tryParse(_lengthFtController.text) ?? 0;
-    double lengthIn = double.tryParse(_lengthInController.text) ?? 0;
-    double widthFt = double.tryParse(_widthFtController.text) ?? 0;
-    double widthIn = double.tryParse(_widthInController.text) ?? 0;
-    double wastePercent = double.tryParse(_wasteController.text) ?? 0;
-    double coveragePerPackage = double.tryParse(_coveragePerPackageController.text) ?? 1;
+    // Calculate roof pitch multiplier = sqrt(1 + (rise/run)^2)
+    final pitchMultiplier = sqrt(1 + pow(rise / run, 2));
 
-    // Convert everything to feet
-    double totalLengthFt = lengthFt + (lengthIn / 12);
-    double totalWidthFt = widthFt + (widthIn / 12);
+    // Total roof surface area = footprint area * pitch multiplier * 2 (for both sides)
+    final footprintArea = width * length;
+    final surfaceArea = footprintArea * pitchMultiplier * 2;
 
-    // Base area (2 sides of roof)
-    double baseArea = totalLengthFt * totalWidthFt * 2;
-
-    // Adjust for pitch
-    double multiplier = pitchMultiplier(_selectedPitch);
-    double adjustedArea = baseArea * multiplier;
-
-    // Material needed before and after waste
-    double neededBeforeWaste = adjustedArea;
-    double neededAfterWaste = adjustedArea * (1 + wastePercent / 100);
-
-    // Packages needed
-    int packages = (neededAfterWaste / coveragePerPackage).ceil();
-
-    // Leftover material
-    double leftover = (packages * coveragePerPackage) - neededAfterWaste;
+    final coveragePerPackage = _shingleTypes[_selectedShingle]!;
+    final packages = (surfaceArea / coveragePerPackage).ceil();
+    final waste = packages * coveragePerPackage - surfaceArea;
+    final totalCost = packages * costPerPackage;
 
     setState(() {
-      surfaceArea = adjustedArea;
-      materialNeededBeforeWaste = neededBeforeWaste;
-      materialNeededAfterWaste = neededAfterWaste;
-      totalPackages = packages;
-      leftoverSqFt = leftover;
+      _roofArea = surfaceArea;
+      _packagesNeeded = packages;
+      _waste = waste;
+      _totalCost = totalCost;
     });
   }
+
+  String _formatDouble(double val) => val.toStringAsFixed(2);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
-        title: const Text("Roof Estimator"),
-        backgroundColor: AppColors.scaffoldBackground,
+        backgroundColor: AppColors.surface,
+        title: const Text(
+          'Roof Estimator',
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Roof Dimensions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            _buildNumberInput('Width (ft)', _widthController),
+            _buildNumberInput('Length (ft)', _lengthController),
+            const SizedBox(height: 12),
+            const Text(
+              'Roof Pitch (Rise / Run)',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             Row(
               children: [
-                Expanded(child: _buildNumberField(_lengthFtController, "Length (ft)")),
-                const SizedBox(width: 8),
-                Expanded(child: _buildNumberField(_lengthInController, "Length (in)")),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: _buildNumberField(_widthFtController, "Width (ft)")),
-                const SizedBox(width: 8),
-                Expanded(child: _buildNumberField(_widthInController, "Width (in)")),
+                Expanded(child: _buildNumberInput('Rise (ft)', _pitchRiseController)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildNumberInput('Run (ft)', _pitchRunController)),
               ],
             ),
             const SizedBox(height: 16),
-
-            const Text("Roof Pitch", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             DropdownButtonFormField<String>(
-              value: _selectedPitch,
-              items: _pitchOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-              onChanged: (value) => setState(() => _selectedPitch = value!),
+              value: _selectedShingle,
+              items: _shingleTypes.keys
+                  .map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type, style: const TextStyle(color: AppColors.textPrimary)),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedShingle = val);
+              },
+              dropdownColor: AppColors.surface,
+              decoration: InputDecoration(
+                labelText: 'Shingle Type',
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             ),
             const SizedBox(height: 16),
-
-            const Text("Shingle Type", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              value: _selectedShingleType,
-              items: _shingleTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-              onChanged: (value) => setState(() => _selectedShingleType = value!),
-            ),
-            const SizedBox(height: 16),
-
-            _buildNumberField(_wasteController, "Waste %"),
-            const SizedBox(height: 8),
-            _buildNumberField(_coveragePerPackageController, "Coverage per Package (sq ft)"),
-
-            const SizedBox(height: 16),
+            _buildNumberInput('Cost per Package (\$)', _costPerPackageController),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.constructionOrange),
-                onPressed: calculateRoof,
-                child: const Text("Calculate", style: TextStyle(color: Colors.white)),
+                onPressed: _calculateRoof,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppColors.buttonBackground,
+                  foregroundColor: AppColors.buttonText,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Calculate', style: TextStyle(fontSize: 18)),
               ),
             ),
-
-            const SizedBox(height: 24),
-            if (surfaceArea != null) ...[
-              _buildResultRow("Roof Surface Area:", "${surfaceArea!.toStringAsFixed(2)} sq ft"),
-              _buildResultRow("Material Needed (no waste):", "${materialNeededBeforeWaste!.toStringAsFixed(2)} sq ft"),
-              _buildResultRow("Material Needed (with waste):", "${materialNeededAfterWaste!.toStringAsFixed(2)} sq ft"),
-              _buildResultRow("Total Packages Needed:", "$totalPackages"),
-              _buildResultRow("Estimated Leftover Material:", "${leftoverSqFt!.toStringAsFixed(2)} sq ft"),
-            ]
+            const SizedBox(height: 30),
+            if (_roofArea != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Roof Surface Area: ${_formatDouble(_roofArea!)} sq ft',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Packages Needed: $_packagesNeeded',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Waste (Leftover Material): ${_formatDouble(_waste!)} sq ft',
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Estimated Total Cost: \$${_formatDouble(_totalCost!)}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNumberField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-    );
-  }
-
-  Widget _buildResultRow(String label, String value) {
+  Widget _buildNumberInput(String label, TextEditingController controller) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value, style: const TextStyle(color: AppColors.textSecondary)),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: const TextStyle(color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: AppColors.textSecondary),
+          filled: true,
+          fillColor: AppColors.surface,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: AppColors.divider),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       ),
     );
   }
